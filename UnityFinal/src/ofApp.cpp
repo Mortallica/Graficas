@@ -4,15 +4,33 @@
 //--------------------------------------------------------------
 void ofApp::setup() {
 
+	
 	ofSetVerticalSync(true);
 	ofSetWindowTitle("Final Project");
 	ofSetFrameRate(60);
+
+	addSphere.addListener(this, &ofApp::addSpherePressed);
 	addCone.addListener(this, &ofApp::addConePressed);
 	addBox.addListener(this, &ofApp::addBoxPressed);
 	
+	easycamGroup.setName("easyCam");
+	easycamGroup.add(selectEasy.set("Activate camera", false));
 	
+	camerasGroup.add(easycamGroup);
+
+	cvGroup.setName("openCV");
+	cvGroup.add(selectcv.set("Activate OpenCV", false));
+	cvGroup.add(activatel.set("Activate Lighting", false));
+	camerasGroup.add(cvGroup);
+	cameras.setup(camerasGroup);
+	cameras.setName("Extras");
+	cameras.setPosition(10,500);
+
+
+
 	gui.setup();
 	gui.setName("Create");
+	gui.setPosition(10, 250);
 	gui.add(clearBtn.setup("clear"));
 	gui.add(addSphere.setup("Add Sphere"));
 	gui.add(addCone.setup("Add Cone"));
@@ -26,7 +44,7 @@ void ofApp::setup() {
 	boxesGroup.setName("Boxes");
 	boxesGroup.add(selectBox.set("Boxes", false));
 	boxesGroup.add(sizeObjectB.set("radius", 45, 10, 300));
-	boxesGroup.add(posXB.set("X", 300, 100, ofGetWidth()));
+	boxesGroup.add(posXB.set("X", 300, 0, ofGetWidth()));
 	boxesGroup.add(posYB.set("Y", ofGetHeight() / 2, 0, ofGetHeight()));
 	boxesGroup.add(posZB.set("Z", 0, 0, 100));
 	boxesGroup.add(RB.set("R", 255, 0, 255));
@@ -52,7 +70,7 @@ void ofApp::setup() {
 	conesGroup.setName("Cones");
 	conesGroup.add(selectCone.set("Cones", false));
 	conesGroup.add(sizeObjectC.set("radius", 45, 10, 300));
-	conesGroup.add(posXC.set("X", 740, 100, ofGetWidth()));
+	conesGroup.add(posXC.set("X", 740, 0, ofGetWidth()));
 	conesGroup.add(posYC.set("Y", ofGetHeight() / 2, 0, ofGetHeight()));
 	conesGroup.add(posZC.set("Z", 0, 0, 100));
 	conesGroup.add(RC.set("R", 255, 0, 255));
@@ -80,10 +98,26 @@ void ofApp::setup() {
     pointLight3.setDiffuseColor( ofFloatColor(19.f/255.f,94.f/255.f,77.f/255.f) );
     pointLight3.setSpecularColor( ofFloatColor(18.f/255.f,150.f/255.f,135.f/255.f) );
 	
+	video.setup(320, 200);
+	color.allocate(video.getWidth(), video.getHeight());
+	gray.allocate(video.getWidth(), video.getHeight());
+	haar.setup("haarcascade_frontalface_default.xml");
+	haar.setScaleHaar(3);
 }
 
 //--------------------------------------------------------------
 void ofApp::update() {
+
+	if (selectcv) {
+		video.update();
+		if (video.isFrameNew()) {
+			color.setFromPixels(video.getPixels());
+			gray = color;
+			haar.findHaarObjects(gray);
+
+		}
+	}
+
 	pointLight.setPosition((ofGetWidth()*.5)+ cos(ofGetElapsedTimef()*.5)*(ofGetWidth()*.3), ofGetHeight()/2, 500);
     pointLight2.setPosition((ofGetWidth()*.5)+ cos(ofGetElapsedTimef()*.15)*(ofGetWidth()*.3),
                             ofGetHeight()*.5 + sin(ofGetElapsedTimef()*.7)*(ofGetHeight()), -300);
@@ -101,16 +135,28 @@ void ofApp::update() {
 void ofApp::draw() {
 	float spinX = sin(ofGetElapsedTimef()*.35f);
 	float spinY = cos(ofGetElapsedTimef()*.075f);
+	
+	if (selectcv) {
+		color.draw(0, 0);
+
+		for (int i = 0; i < haar.blobs.size(); i++) {
+			ofSetColor(255);
+			ofNoFill();
+			ofDrawRectangle(haar.blobs[i].boundingRect);
+		}
+	}
 
 	ofEnableDepthTest();
-
-	cam.begin();
-
-	ofEnableLighting();
-	pointLight.enable();
-	pointLight2.enable();
-	pointLight3.enable();
 	
+
+	
+	if (activatel) {
+		ofEnableLighting();
+		pointLight.enable();
+		pointLight2.enable();
+		pointLight3.enable();
+	}
+
 	if (clearBtn) {
 		spheres.clear();
 		boxes.clear();
@@ -118,6 +164,13 @@ void ofApp::draw() {
 		currentPos = 500;
 	}
 
+
+	if (selectEasy) {
+		cam.begin();
+	}
+	else {
+		cam.end();
+	}
 	for (auto & s : spheres) {
 		if (s.inside(ofGetMouseX(), ofGetMouseY()) && mouseIsPressed == true) {
 			s.setPosition(ofGetMouseX(), ofGetMouseY(), zPosition);	
@@ -129,6 +182,8 @@ void ofApp::draw() {
 			s.setScale(sizeObjectS/100);
 
 		}
+
+		
 
 		if (rotateSpheres || rotS) {
 			s.rotateDeg(spinX, 1.0, 0.0, 0.0);
@@ -174,7 +229,7 @@ void ofApp::draw() {
 			b.setPosition(ofGetMouseX(), ofGetMouseY(), zPosition);
 		}
 
-		if (selectBox) {
+		if (selectBox&&~selectcv) {
 			b.setPosition(posXB, posYB, posZB);
 			b.setScale(sizeObjectB / 100);
 		}
@@ -182,6 +237,10 @@ void ofApp::draw() {
 		if (rotateBoxes || rotB) {
 			b.rotateDeg(spinX, 1.0, 0.0, 0.0);
 			b.rotateDeg(spinY, 0, 1.0, 0.0);
+		}
+
+		if (selectBox&&selectcv) {
+			b.setScale(haar.findHaarObjects(gray));
 		}
 
 		if (drawBoxWireframe|| frameB) {
@@ -193,12 +252,14 @@ void ofApp::draw() {
 		}
 		b.draw();
 	}
-	
+
 	ofDisableDepthTest();
 	ofDisableLighting();
 	cam.end();
+
 	gui.draw();
 	guiTransforms.draw();
+	cameras.draw();
 	
 }
 
@@ -213,9 +274,6 @@ void ofApp::keyPressed(int key) {
 		break;
 	case 's':
 		drawSphereWireframe = !drawSphereWireframe;
-		break;
-	case 'l':
-		bDrawLights = !bDrawLights;
 		break;
 	case '1':
 		rotateBoxes = !rotateBoxes;

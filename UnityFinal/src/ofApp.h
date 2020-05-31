@@ -8,6 +8,7 @@
 #include "CustomSphere.h"
 #include "CustomBox.h"
 #include "CustomCone.h"
+#include "ofxCvHaarFinder.h"
 
 using namespace std;
 
@@ -50,6 +51,16 @@ public:
 	ofxFloatSlider height;
 	ofxFloatSlider width;
 	ofxFloatSlider depth;
+
+	ofxPanel cameras;
+	ofParameterGroup camerasGroup;
+	ofParameterGroup easycamGroup;
+	ofParameter<bool> selectEasy;
+	ofParameter<float> distance;
+	ofParameterGroup cvGroup;
+	ofParameter<bool> selectcv;
+	ofParameter<bool> activatel;
+
 
 	ofxPanel guiTransforms;
 	ofParameterGroup transformsGroup;
@@ -109,9 +120,13 @@ public:
 	int currentPos;
 
 	ofEasyCam cam;
-	ofImage texture;
 
 	ofLight pointLight;
     ofLight pointLight2;
     ofLight pointLight3;
+
+	ofVideoGrabber video;
+	ofxCvColorImage color;
+	ofxCvGrayscaleImage gray;
+	ofxCvHaarFinder haar;
 };

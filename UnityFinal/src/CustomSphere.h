@@ -9,7 +9,7 @@ public:
 		ObjectWEvents::setRadius(radius);
 		ofSpherePrimitive::setRadius(radius);
 		RegisterMouseEvents();
-		this->setPosition(1000, 200, 0);
+		this->setPosition(552, ofGetHeight() / 2, 0);
 	}
 
 	~CustomSphere() {

@@ -13,7 +13,7 @@ public:
 		ofConePrimitive::setRadius(radius);
         ofConePrimitive::setHeight(height);
 		RegisterMouseEvents();
-        this->setPosition(200, 600, 0);
+        this->setPosition(740, ofGetHeight() / 2, 0);
         //this->z = 0;
 		GetInfo();
 	}
